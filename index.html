@@ -67,7 +67,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .del-user-btn:hover{color:var(--red);}
 
 /* ===== HEADER ===== */
-header{background:linear-gradient(135deg,#0d1b2e,#0a1628);border-bottom:1px solid var(--border);padding:0 24px;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px);}
+header{background:linear-gradient(135deg,#0d1b2e,#0a1628);border-bottom:1px solid var(--border);padding:0 16px;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px);}
 .header-inner{max-width:1600px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px;gap:12px;}
 .logo{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:900;color:var(--accent);white-space:nowrap;}
 .logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),#007a62);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;}
@@ -75,6 +75,29 @@ header{background:linear-gradient(135deg,#0d1b2e,#0a1628);border-bottom:1px soli
 .user-chip{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;}
 .user-chip-name{font-size:13px;font-weight:700;}
 .user-chip-role{font-size:10px;font-weight:700;padding:1px 8px;border-radius:20px;}
+/* Mobile header override */
+@media(max-width:768px){
+  header{padding:0;position:sticky;top:0;}
+  .header-inner{display:none;}
+  .mobile-header{display:flex!important;}
+}
+.mobile-header{display:none;flex-direction:column;background:linear-gradient(135deg,#0d1b2e,#0a1628);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
+.mobile-header-top{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.05);}
+.mobile-header-bottom{display:flex;align-items:center;justify-content:space-around;padding:8px 14px;gap:6px;}
+.mobile-logo{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:900;color:var(--accent);}
+.mobile-logo-icon{width:30px;height:30px;background:linear-gradient(135deg,var(--accent),#007a62);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;}
+.mobile-user{display:flex;align-items:center;gap:6px;}
+.mobile-user-name{font-size:13px;font-weight:700;color:var(--text);}
+.mobile-user-role{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;}
+.mobile-btn{display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:6px 10px;cursor:pointer;font-family:'Cairo',sans-serif;font-size:10px;font-weight:600;color:var(--text-muted);transition:all .2s;min-width:52px;flex:1;}
+.mobile-btn:hover,.mobile-btn:active{background:var(--border);color:var(--text);}
+.mobile-btn svg{width:18px;height:18px;}
+.mobile-btn.green{border-color:rgba(16,185,129,.3);color:#10b981;background:rgba(16,185,129,.08);}
+.mobile-btn.yellow{border-color:rgba(245,158,11,.3);color:var(--yellow);background:rgba(245,158,11,.08);}
+.mobile-btn.purple{border-color:rgba(139,92,246,.3);color:#a5b4fc;background:rgba(139,92,246,.08);}
+.mobile-btn.blue{border-color:rgba(59,130,246,.3);color:#93c5fd;background:rgba(59,130,246,.08);}
+.mobile-btn.red{border-color:rgba(239,68,68,.2);color:var(--red);background:rgba(239,68,68,.08);}
+.mobile-btn.accent{border-color:rgba(0,212,170,.3);color:var(--accent);background:rgba(0,212,170,.08);}
 .btn{padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;transition:all .2s;}
 .btn-primary{background:var(--accent);color:#0a0e1a;}
 .btn-primary:hover{background:#00c49b;transform:translateY(-1px);}
@@ -476,6 +499,28 @@ input:focus{border-color:var(--accent);}
     </div>
   </div>
 </header>
+
+<!-- Mobile Header -->
+<div class="mobile-header" id="mobileHeader" style="display:none">
+  <div class="mobile-header-top">
+    <div class="mobile-logo">
+      <div class="mobile-logo-icon">📦</div>
+      <span>مخزوني</span>
+    </div>
+    <div class="mobile-user">
+      <div>
+        <div class="mobile-user-name" id="mobileUserName"></div>
+      </div>
+      <span class="mobile-user-role" id="mobileUserRole"></span>
+      <button class="mobile-btn red" onclick="logout()" style="min-width:36px;padding:5px 8px;flex:0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="mobile-header-bottom" id="mobileActions">
+    <!-- filled by JS -->
+  </div>
+</div>
 
 <main id="appMain" style="display:none">
   <!-- Agent View Banner -->
@@ -899,7 +944,14 @@ async function loadData() {
 // =================== SHOW APP ===================
 function showApp() {
   hide('loadingOverlay');
-  document.getElementById('appHeader').style.display = '';
+  // Show correct header based on screen size
+  if (window.innerWidth <= 768) {
+    document.getElementById('mobileHeader').style.display = 'flex';
+    document.getElementById('appHeader').style.display = 'none';
+  } else {
+    document.getElementById('appHeader').style.display = '';
+    document.getElementById('mobileHeader').style.display = 'none';
+  }
   document.getElementById('appMain').style.display = '';
 
   const u = currentUser;
@@ -915,6 +967,9 @@ function showApp() {
   if (u.role === 'admin') {
     show('btnUsers');
   }
+
+  // Setup mobile header
+  setupMobileHeader(u);
   if (u.role === 'agent') {
     hide('filterTabs');
     const b = document.getElementById('agentBanner');
@@ -1675,12 +1730,50 @@ function exportLog() {
   showToast('📥','تم تصدير السجل');
 }
 
+// =================== MOBILE HEADER ===================
+function setupMobileHeader(u) {
+  // Set user info
+  document.getElementById('mobileUserName').textContent = u.name;
+  const mr = document.getElementById('mobileUserRole');
+  mr.textContent = roleLabel(u.role);
+  mr.style.cssText = 'background:'+roleColor(u.role).bg+';color:'+roleColor(u.role).fg+';padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;';
+
+  // Build action buttons based on role
+  const actions = [];
+  if (u.role === 'admin' || u.role === 'supervisor') {
+    actions.push({label:'بيع', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>', cls:'green', fn:'openSellModal()'});
+    actions.push({label:'تحويل', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>', cls:'yellow', fn:'openAgentModal()'});
+    actions.push({label:'استرجاع', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>', cls:'purple', fn:'openReturnModal()'});
+    actions.push({label:'إضافة', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>', cls:'accent', fn:'openAddModal()'});
+    actions.push({label:'السجلات', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', cls:'blue', fn:'openLogsModal()'});
+  }
+  if (u.role === 'admin') {
+    actions.push({label:'مستخدمون', icon:'👥', cls:'', fn:'openUsersModal()', isEmoji:true});
+  }
+
+  document.getElementById('mobileActions').innerHTML = actions.map(a =>
+    '<button class="mobile-btn ' + a.cls + '" onclick="' + a.fn + '">'
+    + (a.isEmoji ? '<span style="font-size:18px">' + a.icon + '</span>' : a.icon)
+    + '<span>' + a.label + '</span></button>'
+  ).join('');
+}
+
 // =================== START ===================
 // انتظر تحميل Supabase قبل البدء
 function waitForSupabase(tries) {
   if (window.supabase && window.supabase.createClient) {
     init();
-window.addEventListener('resize', () => { if(products.length) renderTable(); });
+window.addEventListener('resize', () => {
+  if (!currentUser) return;
+  if (window.innerWidth <= 768) {
+    document.getElementById('mobileHeader').style.display = 'flex';
+    document.getElementById('appHeader').style.display = 'none';
+  } else {
+    document.getElementById('appHeader').style.display = '';
+    document.getElementById('mobileHeader').style.display = 'none';
+  }
+  if (products.length) renderTable();
+});
   } else if (tries > 0) {
     setTimeout(() => waitForSupabase(tries - 1), 300);
   } else {
