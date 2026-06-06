@@ -198,6 +198,22 @@ input:focus{border-color:var(--accent);}
 .empty-state{padding:40px;text-align:center;color:var(--text-muted);}
 .empty-state .icon{font-size:36px;margin-bottom:10px;}
 .db-config-note{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:14px 16px;margin-bottom:20px;font-size:12px;color:var(--yellow);line-height:1.6;}
+/* ===== SELL MODAL ===== */
+.sell-product-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);margin-bottom:6px;cursor:pointer;transition:all .2s;}
+.sell-product-row:hover{border-color:var(--accent);background:rgba(0,212,170,.05);}
+.sell-product-row.selected{border-color:var(--accent);background:rgba(0,212,170,.1);}
+.sell-product-row .sname{flex:1;font-weight:700;font-size:13px;}
+.sell-product-row .savail{font-size:11px;color:var(--text-muted);}
+.sell-qty-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
+.sell-summary{background:rgba(0,212,170,.08);border:1px solid rgba(0,212,170,.2);border-radius:10px;padding:12px 16px;margin-top:12px;font-size:13px;}
+.sell-summary-row{display:flex;justify-content:space-between;padding:3px 0;}
+.sell-summary-row.total{font-weight:800;font-size:15px;color:var(--accent);border-top:1px solid rgba(0,212,170,.2);margin-top:6px;padding-top:8px;}
+/* ===== RETURN MODAL ===== */
+.return-product-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid rgba(139,92,246,.25);background:rgba(139,92,246,.05);margin-bottom:6px;}
+.return-product-row .rname{flex:1;font-weight:700;font-size:13px;}
+.return-product-row .ragent{font-size:11px;color:#a5b4fc;}
+.return-product-row .rqty-cur{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-muted);}
+
 .db-config-note code{background:rgba(0,0,0,.3);padding:1px 6px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:11px;}
 </style>
 </head>
@@ -309,6 +325,14 @@ input:focus{border-color:var(--accent);}
         <span class="user-chip-name" id="headerUserName"></span>
         <span class="user-chip-role" id="headerUserRole"></span>
       </div>
+      <button class="btn btn-primary" id="btnSell" onclick="openSellModal()" title="تسجيل بيع" style="display:none;background:#10b981;color:#fff;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <span>تسجيل بيع</span>
+      </button>
+      <button class="btn btn-ghost" id="btnReturn" onclick="openReturnModal()" title="استرجاع من مندوب" style="display:none;border-color:rgba(139,92,246,.4);color:#a5b4fc;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+        <span>استرجاع من مندوب</span>
+      </button>
       <button class="btn btn-warning" id="btnAssign" onclick="openAgentModal()" title="تحويل منتجات لمندوب" style="display:none">
         <svg class="icon-svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
         <span>تحويل لمندوب</span>
@@ -450,6 +474,65 @@ input:focus{border-color:var(--accent);}
   </div>
 </div>
 
+
+<!-- Sell Modal -->
+<div class="modal-overlay" id="sellModal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-title" style="color:#10b981">🛒 تسجيل عملية بيع</div>
+      <button class="modal-close" onclick="closeModal('sellModal')">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">اختر المنتج ثم أدخل الكمية المباعة</div>
+    <div id="sellProductsList" style="max-height:240px;overflow-y:auto;margin-bottom:4px;"></div>
+    <div id="sellQtySection" style="display:none">
+      <div class="sell-qty-row">
+        <div class="form-group">
+          <label>الكمية المباعة</label>
+          <input type="number" id="sellQty" placeholder="0" min="1" oninput="updateSellSummary()">
+        </div>
+        <div class="form-group">
+          <label>سعر البيع (ر.س)</label>
+          <input type="number" id="sellPrice" placeholder="0" min="0" step="0.01" oninput="updateSellSummary()">
+        </div>
+      </div>
+      <div class="sell-summary" id="sellSummary" style="display:none">
+        <div class="sell-summary-row"><span>المنتج</span><span id="sumName" style="font-weight:700"></span></div>
+        <div class="sell-summary-row"><span>الكمية</span><span id="sumQty" style="font-family:'IBM Plex Mono',monospace"></span></div>
+        <div class="sell-summary-row"><span>سعر الوحدة</span><span id="sumUnit" style="font-family:'IBM Plex Mono',monospace"></span></div>
+        <div class="sell-summary-row total"><span>الإجمالي</span><span id="sumTotal"></span></div>
+      </div>
+    </div>
+    <!-- Cart for multi-product -->
+    <div id="sellCart" style="margin-top:12px;display:none">
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">سلة المنتجات</div>
+      <div id="sellCartItems"></div>
+      <div class="sell-summary">
+        <div class="sell-summary-row total"><span>إجمالي الفاتورة</span><span id="cartTotal" style="font-family:'IBM Plex Mono',monospace">0 ر.س</span></div>
+      </div>
+    </div>
+    <div class="form-footer">
+      <button class="btn btn-ghost" onclick="closeModal('sellModal')">إلغاء</button>
+      <button class="btn btn-ghost" id="btnAddToCart" onclick="addToCart()" style="display:none;border-color:var(--accent);color:var(--accent)">+ أضف للسلة</button>
+      <button class="btn btn-primary" id="btnConfirmSell" onclick="confirmSell()" style="background:#10b981">✅ تأكيد البيع</button>
+    </div>
+  </div>
+</div>
+
+<!-- Return Modal -->
+<div class="modal-overlay" id="returnModal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title" style="color:#a5b4fc">↩️ استرجاع من مندوب</div>
+      <button class="modal-close" onclick="closeModal('returnModal')">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">اختر المنتج وأدخل الكمية المسترجعة</div>
+    <div id="returnProductsList"></div>
+    <div class="form-footer">
+      <button class="btn btn-ghost" onclick="closeModal('returnModal')">إلغاء</button>
+      <button class="btn btn-warning" onclick="confirmReturn()" style="background:rgba(139,92,246,.2);border-color:rgba(139,92,246,.4);color:#a5b4fc;">↩️ تأكيد الاسترجاع</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"><span id="toastIcon">✅</span><span id="toastMsg"></span></div>
 
 </div><!-- wrapper -->
@@ -665,7 +748,7 @@ function showApp() {
 
   // Role-based UI
   if (u.role === 'admin' || u.role === 'supervisor') {
-    show('btnAssign'); show('btnAdd');
+    show('btnAssign'); show('btnAdd'); show('btnSell'); show('btnReturn');
   }
   if (u.role === 'admin') {
     show('btnUsers');
@@ -978,6 +1061,160 @@ function showToast(icon,msg,color='#00d4aa'){
   document.getElementById('toastMsg').textContent=msg;
   t.style.borderColor=color; t.style.color=color;
   t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// =================== SELL ===================
+let sellCart = [];
+let selectedSellProduct = null;
+
+function openSellModal() {
+  sellCart = [];
+  selectedSellProduct = null;
+  renderSellProducts();
+  document.getElementById('sellQtySection').style.display = 'none';
+  document.getElementById('sellCart').style.display = 'none';
+  document.getElementById('sellSummary').style.display = 'none';
+  document.getElementById('btnAddToCart').style.display = 'none';
+  document.getElementById('sellQty').value = '';
+  document.getElementById('sellPrice').value = '';
+  updateCartDisplay();
+  openModal('sellModal');
+}
+
+function renderSellProducts() {
+  const avail = products.filter(p => (p.total_qty - p.sold_qty - p.agent_qty) > 0);
+  document.getElementById('sellProductsList').innerHTML = avail.length ? avail.map(p => {
+    const rem = p.total_qty - p.sold_qty - p.agent_qty;
+    return `<div class="sell-product-row" id="spr_${p.id}" onclick="selectSellProduct('${p.id}')">
+      <span class="sname">${p.name}</span>
+      <span class="savail">متاح: <strong style="color:var(--accent);font-family:'IBM Plex Mono',monospace">${rem}</strong></span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--green)">${p.price_sell} ر.س</span>
+    </div>`;
+  }).join('') : '<div style="text-align:center;padding:20px;color:var(--text-muted)">لا توجد منتجات متاحة</div>';
+}
+
+function selectSellProduct(id) {
+  selectedSellProduct = products.find(p => p.id === id);
+  document.querySelectorAll('.sell-product-row').forEach(r => r.classList.remove('selected'));
+  const el = document.getElementById('spr_' + id);
+  if (el) el.classList.add('selected');
+  document.getElementById('sellQtySection').style.display = '';
+  document.getElementById('sellPrice').value = selectedSellProduct.price_sell || '';
+  document.getElementById('btnAddToCart').style.display = '';
+  document.getElementById('sellQty').value = '';
+  document.getElementById('sellSummary').style.display = 'none';
+  document.getElementById('sellQty').focus();
+}
+
+function updateSellSummary() {
+  if (!selectedSellProduct) return;
+  const qty = parseInt(document.getElementById('sellQty').value) || 0;
+  const price = parseFloat(document.getElementById('sellPrice').value) || 0;
+  if (qty > 0 && price >= 0) {
+    document.getElementById('sellSummary').style.display = '';
+    document.getElementById('sumName').textContent = selectedSellProduct.name;
+    document.getElementById('sumQty').textContent = qty + ' وحدة';
+    document.getElementById('sumUnit').textContent = price + ' ر.س';
+    document.getElementById('sumTotal').textContent = (qty * price).toLocaleString() + ' ر.س';
+  } else {
+    document.getElementById('sellSummary').style.display = 'none';
+  }
+}
+
+function addToCart() {
+  if (!selectedSellProduct) return;
+  const qty = parseInt(document.getElementById('sellQty').value) || 0;
+  const price = parseFloat(document.getElementById('sellPrice').value) || 0;
+  const rem = selectedSellProduct.total_qty - selectedSellProduct.sold_qty - selectedSellProduct.agent_qty;
+  if (qty <= 0) { showToast('⚠️','أدخل كمية صحيحة','#f59e0b'); return; }
+  if (qty > rem) { showToast('⚠️','الكمية أكبر من المتاح ('+rem+')','#f59e0b'); return; }
+  const exist = sellCart.findIndex(c => c.id === selectedSellProduct.id);
+  if (exist >= 0) { sellCart[exist].qty += qty; sellCart[exist].price = price; }
+  else { sellCart.push({ id: selectedSellProduct.id, name: selectedSellProduct.name, qty, price }); }
+  updateCartDisplay();
+  selectedSellProduct = null;
+  document.querySelectorAll('.sell-product-row').forEach(r => r.classList.remove('selected'));
+  document.getElementById('sellQtySection').style.display = 'none';
+  document.getElementById('sellQty').value = '';
+  showToast('🛒', selectedSellProduct?.name || 'تمت الإضافة للسلة');
+}
+
+function updateCartDisplay() {
+  if (sellCart.length === 0) { document.getElementById('sellCart').style.display = 'none'; return; }
+  document.getElementById('sellCart').style.display = '';
+  const total = sellCart.reduce((s,c) => s + c.qty * c.price, 0);
+  document.getElementById('sellCartItems').innerHTML = sellCart.map((c,i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface2);border-radius:6px;margin-bottom:4px;font-size:12px;">
+      <span style="flex:1;font-weight:700">${c.name}</span>
+      <span style="font-family:'IBM Plex Mono',monospace">${c.qty} × ${c.price} ر.س</span>
+      <span style="font-weight:700;color:var(--green);font-family:'IBM Plex Mono',monospace">${(c.qty*c.price).toLocaleString()}</span>
+      <button onclick="sellCart.splice(${i},1);updateCartDisplay();" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;">✕</button>
+    </div>`).join('');
+  document.getElementById('cartTotal').textContent = total.toLocaleString() + ' ر.س';
+}
+
+async function confirmSell() {
+  // Combine cart + current selection
+  let items = [...sellCart];
+  if (selectedSellProduct) {
+    const qty = parseInt(document.getElementById('sellQty').value) || 0;
+    const price = parseFloat(document.getElementById('sellPrice').value) || 0;
+    if (qty > 0) items.push({ id: selectedSellProduct.id, name: selectedSellProduct.name, qty, price });
+  }
+  if (items.length === 0) { showToast('⚠️','اختر منتجاً وأدخل الكمية','#f59e0b'); return; }
+  let errors = [];
+  for (const item of items) {
+    const p = products.find(x => x.id === item.id);
+    if (!p) continue;
+    const rem = p.total_qty - p.sold_qty - p.agent_qty;
+    if (item.qty > rem) { errors.push(p.name + ': الكمية المطلوبة أكبر من المتاح'); continue; }
+    const newSold = p.sold_qty + item.qty;
+    const { error } = await db.from('products').update({ sold_qty: newSold }).eq('id', item.id);
+    if (!error) { p.sold_qty = newSold; }
+  }
+  closeModal('sellModal');
+  updateStats(); renderTable();
+  if (errors.length) showToast('⚠️', errors[0], '#f59e0b');
+  else showToast('✅', `تم تسجيل بيع ${items.length} منتج بنجاح`,'#10b981');
+}
+
+// =================== RETURN FROM AGENT ===================
+function openReturnModal() {
+  const withAgent = products.filter(p => p.agent_name && p.agent_qty > 0);
+  const list = document.getElementById('returnProductsList');
+  if (!withAgent.length) {
+    list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted)">لا توجد منتجات محولة لمندوبين</div>';
+  } else {
+    list.innerHTML = withAgent.map(p => `
+      <div class="return-product-row">
+        <div style="flex:1">
+          <div class="rname">${p.name}</div>
+          <div class="ragent">🧑‍💼 ${p.agent_name} — عنده: <strong style="font-family:'IBM Plex Mono',monospace">${p.agent_qty}</strong> وحدة</div>
+        </div>
+        <input type="number" id="rqty_${p.id}" placeholder="0" min="0" max="${p.agent_qty}"
+          style="width:75px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-family:'IBM Plex Mono',monospace;outline:none;font-size:13px;text-align:center;"
+          oninput="this.style.borderColor=parseInt(this.value)>0?'var(--accent)':'var(--border)'">
+      </div>`).join('');
+  }
+  openModal('returnModal');
+}
+
+async function confirmReturn() {
+  const withAgent = products.filter(p => p.agent_name && p.agent_qty > 0);
+  let returned = 0;
+  for (const p of withAgent) {
+    const qty = parseInt(document.getElementById('rqty_' + p.id)?.value) || 0;
+    if (qty <= 0) continue;
+    if (qty > p.agent_qty) { showToast('⚠️', p.name + ': الكمية أكبر من المتاح عند المندوب', '#f59e0b'); return; }
+    const newAgentQty = p.agent_qty - qty;
+    const newAgent = newAgentQty === 0 ? null : p.agent_name;
+    const { error } = await db.from('products').update({ agent_qty: newAgentQty, agent_name: newAgent }).eq('id', p.id);
+    if (!error) { p.agent_qty = newAgentQty; p.agent_name = newAgent; returned++; }
+  }
+  closeModal('returnModal');
+  updateStats(); renderTable();
+  if (returned > 0) showToast('↩️', `تم استرجاع ${returned} منتج بنجاح`, '#8b5cf6');
+  else showToast('⚠️', 'أدخل كميات الاسترجاع', '#f59e0b');
 }
 
 // =================== START ===================
