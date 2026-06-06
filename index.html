@@ -991,28 +991,81 @@ function getFiltered() {
   return list;
 }
 
+function isMobile() { return window.innerWidth <= 768; }
+
+function buildMobileCard(p, i, isAdmin, isAgent, showCost) {
+  const remaining = p.total_qty - p.sold_qty - p.agent_qty;
+  const ratio = p.total_qty > 0 ? Math.round(p.sold_qty / p.total_qty * 100) : 0;
+  const isOut = remaining <= 0;
+  const isLow = remaining > 0 && remaining <= p.min_stock;
+  let stockClass = 'stock-ok', stockLabel = 'متاح', stockIcon = '🟢';
+  if (isOut) { stockClass = 'stock-out'; stockLabel = 'نفذ'; stockIcon = '🔴'; }
+  else if (isLow) { stockClass = 'stock-low'; stockLabel = 'منخفض'; stockIcon = '🟡'; }
+  let barColor = '#10b981';
+  if (ratio >= 80) barColor = '#f59e0b';
+  if (ratio >= 95) barColor = '#ef4444';
+  const canEdit = !isAgent && (isAdmin || currentUser.role === 'supervisor');
+
+  const costCell = showCost ? '<div style="background:var(--surface);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:9px;color:var(--text-muted);margin-bottom:3px;">التكلفة</div><div style="font-family:monospace;font-weight:600;font-size:12px;color:var(--text-dim)">' + (p.price_cost||0).toLocaleString() + ' ر.س</div></div>' : '';
+
+  const agentSection = p.agent_name ? '<div style="display:flex;align-items:center;gap:6px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:7px 10px;margin-top:8px;"><span class="agent-dot"></span><div><div style="font-size:11px;font-weight:700;color:#a5b4fc">' + p.agent_name + '</div><div style="font-size:10px;color:var(--text-muted)">' + p.agent_qty + ' وحدة محولة</div></div></div>' : '';
+
+  const editBtn = canEdit ? '<button class="icon-btn" onclick="editProduct(\'' + p.id + '\')" style="width:28px;height:28px;">✏️</button>' : '';
+  const delBtn = isAdmin ? '<button class="icon-btn danger" onclick="deleteProduct(\'' + p.id + '\')" style="width:28px;height:28px;">🗑️</button>' : '';
+
+  const pricesCols = showCost ? '1fr 1fr 1fr' : '1fr 1fr';
+
+  return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;animation:fadeIn .3s ease ' + (i*30) + 'ms both;">'
+    + '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:8px;">'
+      + '<div style="flex:1"><div style="font-weight:800;font-size:15px;color:var(--text)">' + p.name + '</div>'
+      + '<div style="font-size:10px;color:var(--text-muted);margin-top:2px;font-family:monospace">' + (p.sku||'') + (p.category?' · '+p.category:'') + '</div></div>'
+      + '<div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">'
+        + '<span class="stock-badge ' + stockClass + '">' + stockIcon + ' ' + stockLabel + '</span>'
+        + editBtn + delBtn
+      + '</div>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;">'
+      + '<div style="background:var(--surface);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:9px;color:var(--text-muted);margin-bottom:3px;">الكمية</div><div style="font-family:monospace;font-weight:700;font-size:16px;">' + p.total_qty + '</div></div>'
+      + '<div style="background:var(--surface);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:9px;color:var(--text-muted);margin-bottom:3px;">المباع</div><div style="font-family:monospace;font-weight:700;font-size:16px;color:var(--accent)">' + p.sold_qty + '</div></div>'
+      + '<div style="background:var(--surface);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:9px;color:var(--text-muted);margin-bottom:3px;">المتبقي</div><div style="font-family:monospace;font-weight:700;font-size:16px;color:' + (isOut?'var(--red)':isLow?'var(--yellow)':'var(--green)') + '">' + remaining + '</div></div>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:' + pricesCols + ';gap:6px;margin-bottom:8px;">'
+      + costCell
+      + '<div style="background:var(--surface);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:9px;color:var(--text-muted);margin-bottom:3px;">سعر البيع</div><div style="font-family:monospace;font-weight:700;font-size:13px;color:var(--green)">' + (p.price_sell||0).toLocaleString() + ' ر.س</div></div>'
+      + '<div style="background:var(--surface);border-radius:8px;padding:8px;text-align:center;"><div style="font-size:9px;color:var(--text-muted);margin-bottom:3px;">نسبة البيع</div><div style="font-family:monospace;font-weight:700;font-size:13px;color:' + barColor + '">' + ratio + '%</div></div>'
+    + '</div>'
+    + '<div class="progress-bar" style="height:6px;"><div class="progress-fill" style="width:' + ratio + '%;background:' + barColor + '"></div></div>'
+    + agentSection
+    + '</div>';
+}
+
 function renderTable() {
   const isAgent = currentUser.role === 'agent';
   const isAdmin = currentUser.role === 'admin';
   const showCost = isAdmin;
-
-  // Header
-  document.getElementById('tableHead').innerHTML = `<tr>
-    <th>المنتج</th><th>الكمية</th>
-    ${showCost?'<th>سعر التكلفة</th>':''}
-    <th>سعر البيع</th><th>المباع</th><th>المتبقي</th>
-    ${!isAgent?'<th>نسبة البيع</th><th>المندوب</th>':''}
-    <th>الحالة</th>
-    ${!isAgent&&(isAdmin||currentUser.role==='supervisor')?'<th>إجراءات</th>':''}
-  </tr>`;
-
   const list = getFiltered();
   document.getElementById('countBadge').textContent = list.length;
   const tbody = document.getElementById('tableBody');
+
   if (!list.length) {
+    document.getElementById('tableHead').innerHTML = '';
     tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="icon">📭</div><p>لا توجد منتجات</p></div></td></tr>`;
     return;
   }
+
+  if (isMobile()) {
+    // CARD VIEW on mobile
+    document.getElementById('tableHead').innerHTML = '';
+    const cards = list.map((p,i) => buildMobileCard(p, i, isAdmin, isAgent, showCost)).join('');
+    tbody.innerHTML = '<tr><td style="padding:0;border:none"><div style="display:flex;flex-direction:column;gap:10px;padding:10px;">' + cards + '</div></td></tr>';
+    return;
+  }
+
+  // DESKTOP TABLE VIEW
+  const thCost = showCost ? '<th>سعر التكلفة</th>' : '';
+  const thAgent = !isAgent ? '<th>نسبة البيع</th><th>المندوب</th>' : '';
+  const thActions = (!isAgent && (isAdmin || currentUser.role==='supervisor')) ? '<th>إجراءات</th>' : '';
+  document.getElementById('tableHead').innerHTML = '<tr><th>المنتج</th><th>الكمية</th>' + thCost + '<th>سعر البيع</th><th>المباع</th><th>المتبقي</th>' + thAgent + '<th>الحالة</th>' + thActions + '</tr>';
   tbody.innerHTML = list.map((p,i) => {
     const remaining = p.total_qty - p.sold_qty - p.agent_qty;
     const ratio = p.total_qty > 0 ? (p.sold_qty/p.total_qty*100) : 0;
@@ -1627,6 +1680,7 @@ function exportLog() {
 function waitForSupabase(tries) {
   if (window.supabase && window.supabase.createClient) {
     init();
+window.addEventListener('resize', () => { if(products.length) renderTable(); });
   } else if (tries > 0) {
     setTimeout(() => waitForSupabase(tries - 1), 300);
   } else {
