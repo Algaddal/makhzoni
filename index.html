@@ -5,7 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>مخزوني — نظام إدارة المخزون</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// تحميل Supabase بطريقة آمنة
+window.__sb_loaded = false;
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onload="window.__sb_loaded=true;" onerror="window.__sb_loaded=false;"></script>
 <style>
 :root {
   --bg:#0a0e1a; --surface:#111827; --surface2:#1a2236; --border:#1f2d45;
@@ -456,7 +460,7 @@ const CONFIG_KEY = 'makhzoni_config';
 // ⬇️ ضع هنا بياناتك من Supabase مباشرة
 const HARDCODED_URL = 'https://zskemcxrynkyqkgoibin.supabase.co';
 const HARDCODED_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpza2VtY3hyeW5reXFrZ29pYmluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3MzM5ODcsImV4cCI6MjA5NjMwOTk4N30.YSRufWAKkvYgX6dpBVuBcQVQkrCCUGMW5o5WSmPJkMU';
-let SB_URL = '', SB_KEY = '', supabase = null;
+let SB_URL = '', SB_KEY = '', db = null;
 
 let currentUser = null;
 let products = [];
@@ -493,7 +497,7 @@ async function init() {
 }
 
 function initSupabase() {
-  supabase = window.supabase.createClient(SB_URL, SB_KEY);
+  db = window.supabase.createClient(SB_URL, SB_KEY);
 }
 
 // =================== SETUP ===================
@@ -518,7 +522,7 @@ async function runSetup() {
     // Create tables via RPC or direct insert — we'll create the schema SQL
     await createSchema();
     // Insert admin user
-    const { error } = await supabase.from('users').insert({
+    const { error } = await db.from('users').insert({
       name, phone, role: 'admin', pin_hash: btoa(pin), active: true
     });
     if (error) throw error;
@@ -535,7 +539,7 @@ async function runSetup() {
 async function createSchema() {
   // Try to create tables if not exist using Supabase REST
   // Users table
-  await supabase.rpc('create_tables_if_not_exist').catch(()=>{});
+  await db.rpc('create_tables_if_not_exist').catch(()=>{});
   // fallback: just try inserts and ignore errors
 }
 
@@ -549,7 +553,7 @@ async function checkPhone() {
   document.getElementById('phoneBtn').textContent = 'جاري البحث...';
 
   try {
-    const { data, error } = await supabase.from('users').select('*').eq('phone', phone).eq('active', true).single();
+    const { data, error } = await db.from('users').select('*').eq('phone', phone).eq('active', true).single();
     if (error || !data) throw new Error('not found');
     foundUser = data;
     document.getElementById('phoneBtn').disabled = false;
@@ -594,7 +598,7 @@ async function saveNewPin() {
   if (p1.length !== 4 || p2.length !== 4) { e.textContent='أدخل 4 أرقام'; e.classList.add('show'); return; }
   if (p1 !== p2) { e.textContent='رموز PIN غير متطابقة'; e.classList.add('show'); return; }
   e.classList.remove('show');
-  await supabase.from('users').update({ pin_hash: btoa(p1) }).eq('id', foundUser.id);
+  await db.from('users').update({ pin_hash: btoa(p1) }).eq('id', foundUser.id);
   foundUser.pin_hash = btoa(p1);
   await loginSuccess(foundUser);
 }
@@ -640,8 +644,8 @@ function updatePinDots(n) {
 // =================== LOAD DATA ===================
 async function loadData() {
   const [prodRes, userRes] = await Promise.all([
-    supabase.from('products').select('*').order('name'),
-    supabase.from('users').select('id,name,phone,role,active').order('name')
+    db.from('products').select('*').order('name'),
+    db.from('users').select('id,name,phone,role,active').order('name')
   ]);
   products = prodRes.data || [];
   users = userRes.data || [];
@@ -838,14 +842,14 @@ async function saveProduct() {
   if (sold_qty > total_qty) { showToast('⚠️','المباع أكبر من الكمية الكلية','#f59e0b'); return; }
   const obj = { name, sku: document.getElementById('pSku').value, category: document.getElementById('pCategory').value, total_qty, sold_qty, price_cost, price_sell, min_stock };
   if (editingId) {
-    const { error } = await supabase.from('products').update(obj).eq('id', editingId);
+    const { error } = await db.from('products').update(obj).eq('id', editingId);
     if (error) { showToast('❌','خطأ في التعديل','#ef4444'); return; }
     const i = products.findIndex(p=>p.id===editingId);
     products[i] = { ...products[i], ...obj };
     showToast('✅','تم تعديل المنتج');
   } else {
     obj.agent_name = null; obj.agent_qty = 0;
-    const { data, error } = await supabase.from('products').insert(obj).select().single();
+    const { data, error } = await db.from('products').insert(obj).select().single();
     if (error) { showToast('❌','خطأ في الإضافة: '+error.message,'#ef4444'); return; }
     products.push(data);
     showToast('✅','تمت إضافة المنتج');
@@ -855,7 +859,7 @@ async function saveProduct() {
 
 async function deleteProduct(id) {
   if (!confirm('هل أنت متأكد من حذف هذا المنتج؟')) return;
-  const { error } = await supabase.from('products').delete().eq('id', id);
+  const { error } = await db.from('products').delete().eq('id', id);
   if (error) { showToast('❌','خطأ في الحذف','#ef4444'); return; }
   products = products.filter(p=>p.id!==id);
   updateStats(); renderTable();
@@ -889,7 +893,7 @@ async function assignAgent() {
     const newAgent = qty > 0 ? agentName : null;
     const newQty = qty > 0 ? qty : 0;
     if (newAgent !== p.agent_name || newQty !== p.agent_qty) {
-      await supabase.from('products').update({ agent_name: newAgent, agent_qty: newQty }).eq('id', p.id);
+      await db.from('products').update({ agent_name: newAgent, agent_qty: newQty }).eq('id', p.id);
       p.agent_name = newAgent; p.agent_qty = newQty;
       if (qty > 0) assigned++;
     }
@@ -927,7 +931,7 @@ async function addUser() {
     err.textContent='يرجى تعبئة جميع الحقول (PIN 4 أرقام)'; err.classList.add('show'); return;
   }
   err.classList.remove('show');
-  const { data, error } = await supabase.from('users').insert({ name, phone, role, pin_hash: btoa(pin), active: true }).select().single();
+  const { data, error } = await db.from('users').insert({ name, phone, role, pin_hash: btoa(pin), active: true }).select().single();
   if (error) { err.textContent='خطأ: '+error.message; err.classList.add('show'); return; }
   users.push(data);
   ['newUserName','newUserPhone','newUserPin'].forEach(id=>document.getElementById(id).value='');
@@ -937,7 +941,7 @@ async function addUser() {
 
 async function removeUser(id) {
   if (!confirm('حذف هذا المستخدم؟')) return;
-  await supabase.from('users').update({ active: false }).eq('id', id);
+  await db.from('users').update({ active: false }).eq('id', id);
   users = users.filter(u=>u.id!==id);
   renderUsersList();
   showToast('🗑️','تم حذف المستخدم');
@@ -979,7 +983,7 @@ function showToast(icon,msg,color='#00d4aa'){
 // =================== START ===================
 // انتظر تحميل Supabase قبل البدء
 function waitForSupabase(tries) {
-  if (window.supabase) {
+  if (window.supabase && window.supabase.createClient) {
     init();
   } else if (tries > 0) {
     setTimeout(() => waitForSupabase(tries - 1), 300);
