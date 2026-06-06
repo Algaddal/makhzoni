@@ -198,6 +198,28 @@ input:focus{border-color:var(--accent);}
 .empty-state{padding:40px;text-align:center;color:var(--text-muted);}
 .empty-state .icon{font-size:36px;margin-bottom:10px;}
 .db-config-note{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:14px 16px;margin-bottom:20px;font-size:12px;color:var(--yellow);line-height:1.6;}
+/* ===== LOGS ===== */
+.logs-tabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:12px;}
+.log-tab{padding:7px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-family:'Cairo',sans-serif;transition:all .2s;}
+.log-tab.active{background:rgba(0,212,170,.1);border-color:var(--accent);color:var(--accent);}
+.log-row{display:grid;gap:0;border-bottom:1px solid var(--border);transition:background .15s;}
+.log-row:hover{background:var(--surface2);}
+.log-row:last-child{border-bottom:none;}
+.log-cell{padding:10px 12px;font-size:12px;display:flex;align-items:center;}
+.log-action-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;}
+.log-action-sell{background:rgba(16,185,129,.12);color:var(--green);}
+.log-action-assign{background:rgba(139,92,246,.12);color:#a5b4fc;}
+.log-action-return{background:rgba(245,158,11,.12);color:var(--yellow);}
+.log-action-add{background:rgba(59,130,246,.12);color:var(--blue);}
+.log-action-edit{background:rgba(100,116,139,.12);color:var(--text-dim);}
+.log-date{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-muted);}
+.log-filter-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;}
+.log-filter-bar input,.log-filter-bar select{padding:7px 10px;font-size:12px;}
+.log-summary-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px;}
+.log-sum-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;text-align:center;}
+.log-sum-val{font-size:18px;font-weight:900;font-family:'IBM Plex Mono',monospace;}
+.log-sum-lbl{font-size:10px;color:var(--text-muted);margin-top:2px;}
+
 /* ===== SELL MODAL ===== */
 .sell-product-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);margin-bottom:6px;cursor:pointer;transition:all .2s;}
 .sell-product-row:hover{border-color:var(--accent);background:rgba(0,212,170,.05);}
@@ -340,6 +362,10 @@ input:focus{border-color:var(--accent);}
       <button class="btn btn-primary" id="btnAdd" onclick="openAddModal()" title="إضافة منتج جديد" style="display:none">
         <svg class="icon-svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
         <span>منتج جديد</span>
+      </button>
+      <button class="btn btn-ghost" id="btnLogs" onclick="openLogsModal()" style="display:none;border-color:rgba(59,130,246,.3);color:#93c5fd;" title="السجلات">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <span>السجلات</span>
       </button>
       <button class="btn btn-ghost" id="btnUsers" onclick="openUsersModal()" style="display:none" title="إدارة المستخدمين">👥</button>
       <button class="btn btn-danger" onclick="logout()" title="خروج">
@@ -531,6 +557,41 @@ input:focus{border-color:var(--accent);}
       <button class="btn btn-ghost" onclick="closeModal('returnModal')">إلغاء</button>
       <button class="btn btn-warning" onclick="confirmReturn()" style="background:rgba(139,92,246,.2);border-color:rgba(139,92,246,.4);color:#a5b4fc;">↩️ تأكيد الاسترجاع</button>
     </div>
+  </div>
+</div>
+
+<!-- Logs Modal -->
+<div class="modal-overlay" id="logsModal">
+  <div class="modal" style="max-width:900px;width:95vw;">
+    <div class="modal-header">
+      <div class="modal-title" style="color:#93c5fd">📋 السجلات</div>
+      <button class="modal-close" onclick="closeModal('logsModal')">✕</button>
+    </div>
+    <div class="logs-tabs">
+      <button class="log-tab active" onclick="switchLog('sales',this)">🛒 المبيعات</button>
+      <button class="log-tab" onclick="switchLog('agents',this)">🧑‍💼 تحويلات المناديب</button>
+      <button class="log-tab" onclick="switchLog('inventory',this)">📦 حركة المخزون</button>
+    </div>
+    <!-- Filters -->
+    <div class="log-filter-bar">
+      <input type="date" id="logDateFrom" onchange="renderCurrentLog()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Cairo',sans-serif;outline:none;">
+      <input type="date" id="logDateTo" onchange="renderCurrentLog()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Cairo',sans-serif;outline:none;">
+      <input type="text" id="logSearch" placeholder="بحث..." oninput="renderCurrentLog()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Cairo',sans-serif;outline:none;min-width:150px;">
+      <button class="btn btn-ghost" onclick="clearLogFilters()" style="font-size:11px;padding:6px 10px;">مسح الفلاتر</button>
+      <button class="btn btn-ghost" onclick="exportLog()" style="font-size:11px;padding:6px 10px;">📥 تصدير</button>
+    </div>
+    <!-- Summary -->
+    <div class="log-summary-bar" id="logSummaryBar"></div>
+    <!-- Table -->
+    <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+      <div style="overflow-x:auto;max-height:420px;overflow-y:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead id="logThead" style="position:sticky;top:0;z-index:1;"></thead>
+          <tbody id="logTbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:var(--text-muted);text-align:left" id="logCount"></div>
   </div>
 </div>
 <div class="toast" id="toast"><span id="toastIcon">✅</span><span id="toastMsg"></span></div>
@@ -748,7 +809,7 @@ function showApp() {
 
   // Role-based UI
   if (u.role === 'admin' || u.role === 'supervisor') {
-    show('btnAssign'); show('btnAdd'); show('btnSell'); show('btnReturn');
+    show('btnAssign'); show('btnAdd'); show('btnSell'); show('btnReturn'); show('btnLogs');
   }
   if (u.role === 'admin') {
     show('btnUsers');
@@ -935,6 +996,14 @@ async function saveProduct() {
     const { data, error } = await db.from('products').insert(obj).select().single();
     if (error) { showToast('❌','خطأ في الإضافة: '+error.message,'#ef4444'); return; }
     products.push(data);
+    // سجل إضافة منتج جديد
+    await db.from('inventory_log').insert({
+      product_id: data.id, product_name: data.name,
+      action: 'إضافة منتج', qty_before: 0,
+      qty_change: data.total_qty, qty_after: data.total_qty,
+      note: 'إضافة منتج جديد بكمية ' + data.total_qty,
+      done_by: currentUser.name
+    }).catch(()=>{});
     showToast('✅','تمت إضافة المنتج');
   }
   closeModal('productModal'); updateStats(); renderTable();
@@ -977,8 +1046,22 @@ async function assignAgent() {
     const newQty = qty > 0 ? qty : 0;
     if (newAgent !== p.agent_name || newQty !== p.agent_qty) {
       await db.from('products').update({ agent_name: newAgent, agent_qty: newQty }).eq('id', p.id);
+      if (qty > 0) {
+        await db.from('agent_log').insert({
+          product_id: p.id, product_name: p.name,
+          agent_name: agentName, action: 'تحويل',
+          qty, done_by: currentUser.name
+        });
+        await db.from('inventory_log').insert({
+          product_id: p.id, product_name: p.name,
+          action: 'تحويل لمندوب', qty_before: p.agent_qty,
+          qty_change: qty, qty_after: newQty,
+          note: 'تحويل ' + qty + ' وحدة للمندوب ' + agentName,
+          done_by: currentUser.name
+        });
+        assigned++;
+      }
       p.agent_name = newAgent; p.agent_qty = newQty;
-      if (qty > 0) assigned++;
     }
   }
   closeModal('agentModal'); updateStats(); renderTable();
@@ -1154,7 +1237,6 @@ function updateCartDisplay() {
 }
 
 async function confirmSell() {
-  // Combine cart + current selection
   let items = [...sellCart];
   if (selectedSellProduct) {
     const qty = parseInt(document.getElementById('sellQty').value) || 0;
@@ -1162,20 +1244,36 @@ async function confirmSell() {
     if (qty > 0) items.push({ id: selectedSellProduct.id, name: selectedSellProduct.name, qty, price });
   }
   if (items.length === 0) { showToast('⚠️','اختر منتجاً وأدخل الكمية','#f59e0b'); return; }
-  let errors = [];
+  let errors = [], sold = 0;
   for (const item of items) {
     const p = products.find(x => x.id === item.id);
     if (!p) continue;
     const rem = p.total_qty - p.sold_qty - p.agent_qty;
-    if (item.qty > rem) { errors.push(p.name + ': الكمية المطلوبة أكبر من المتاح'); continue; }
+    if (item.qty > rem) { errors.push(p.name + ': الكمية أكبر من المتاح ('+rem+')'); continue; }
     const newSold = p.sold_qty + item.qty;
     const { error } = await db.from('products').update({ sold_qty: newSold }).eq('id', item.id);
-    if (!error) { p.sold_qty = newSold; }
+    if (!error) {
+      // سجل المبيعات
+      await db.from('sales_log').insert({
+        product_id: p.id, product_name: p.name,
+        qty: item.qty, price_sell: item.price,
+        total: item.qty * item.price,
+        sold_by: currentUser.name
+      });
+      // سجل حركة المخزون
+      await db.from('inventory_log').insert({
+        product_id: p.id, product_name: p.name,
+        action: 'بيع', qty_before: p.sold_qty,
+        qty_change: -item.qty, qty_after: newSold,
+        note: 'بيع ' + item.qty + ' وحدة بسعر ' + item.price + ' ر.س',
+        done_by: currentUser.name
+      });
+      p.sold_qty = newSold; sold++;
+    }
   }
-  closeModal('sellModal');
-  updateStats(); renderTable();
+  closeModal('sellModal'); updateStats(); renderTable();
   if (errors.length) showToast('⚠️', errors[0], '#f59e0b');
-  else showToast('✅', `تم تسجيل بيع ${items.length} منتج بنجاح`,'#10b981');
+  else showToast('✅', `تم تسجيل بيع ${sold} منتج بنجاح`,'#10b981');
 }
 
 // =================== RETURN FROM AGENT ===================
@@ -1206,15 +1304,222 @@ async function confirmReturn() {
     const qty = parseInt(document.getElementById('rqty_' + p.id)?.value) || 0;
     if (qty <= 0) continue;
     if (qty > p.agent_qty) { showToast('⚠️', p.name + ': الكمية أكبر من المتاح عند المندوب', '#f59e0b'); return; }
+    const agentNameSaved = p.agent_name;
     const newAgentQty = p.agent_qty - qty;
     const newAgent = newAgentQty === 0 ? null : p.agent_name;
     const { error } = await db.from('products').update({ agent_qty: newAgentQty, agent_name: newAgent }).eq('id', p.id);
-    if (!error) { p.agent_qty = newAgentQty; p.agent_name = newAgent; returned++; }
+    if (!error) {
+      // سجل المناديب
+      await db.from('agent_log').insert({
+        product_id: p.id, product_name: p.name,
+        agent_name: agentNameSaved, action: 'استرجاع',
+        qty, done_by: currentUser.name
+      });
+      // سجل المخزون
+      await db.from('inventory_log').insert({
+        product_id: p.id, product_name: p.name,
+        action: 'استرجاع من مندوب', qty_before: p.agent_qty,
+        qty_change: qty, qty_after: newAgentQty,
+        note: 'استرجاع ' + qty + ' وحدة من المندوب ' + agentNameSaved,
+        done_by: currentUser.name
+      });
+      p.agent_qty = newAgentQty; p.agent_name = newAgent; returned++;
+    }
   }
-  closeModal('returnModal');
-  updateStats(); renderTable();
+  closeModal('returnModal'); updateStats(); renderTable();
   if (returned > 0) showToast('↩️', `تم استرجاع ${returned} منتج بنجاح`, '#8b5cf6');
   else showToast('⚠️', 'أدخل كميات الاسترجاع', '#f59e0b');
+}
+
+// =================== LOGS ===================
+let currentLogTab = 'sales';
+let logsData = { sales: [], agents: [], inventory: [] };
+
+async function openLogsModal() {
+  openModal('logsModal');
+  await loadAllLogs();
+}
+
+async function loadAllLogs() {
+  document.getElementById('logTbody').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-muted)">جاري التحميل...</td></tr>';
+  const [salesRes, agentsRes, invRes] = await Promise.all([
+    db.from('sales_log').select('*').order('created_at', { ascending: false }).limit(500),
+    db.from('agent_log').select('*').order('created_at', { ascending: false }).limit(500),
+    db.from('inventory_log').select('*').order('created_at', { ascending: false }).limit(500)
+  ]);
+  logsData.sales = salesRes.data || [];
+  logsData.agents = agentsRes.data || [];
+  logsData.inventory = invRes.data || [];
+  renderCurrentLog();
+}
+
+function switchLog(tab, btn) {
+  currentLogTab = tab;
+  document.querySelectorAll('.log-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCurrentLog();
+}
+
+function clearLogFilters() {
+  document.getElementById('logDateFrom').value = '';
+  document.getElementById('logDateTo').value = '';
+  document.getElementById('logSearch').value = '';
+  renderCurrentLog();
+}
+
+function getLogFiltered() {
+  const from = document.getElementById('logDateFrom').value;
+  const to = document.getElementById('logDateTo').value;
+  const q = (document.getElementById('logSearch').value || '').toLowerCase();
+  let data = logsData[currentLogTab] || [];
+  if (from) data = data.filter(r => r.created_at >= from);
+  if (to) data = data.filter(r => r.created_at <= to + 'T23:59:59');
+  if (q) data = data.filter(r =>
+    (r.product_name||'').toLowerCase().includes(q) ||
+    (r.agent_name||'').toLowerCase().includes(q) ||
+    (r.sold_by||'').toLowerCase().includes(q) ||
+    (r.done_by||'').toLowerCase().includes(q) ||
+    (r.action||'').toLowerCase().includes(q) ||
+    (r.note||'').toLowerCase().includes(q)
+  );
+  return data;
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('ar-SA') + ' ' + dt.toLocaleTimeString('ar-SA', {hour:'2-digit',minute:'2-digit'});
+}
+
+function renderCurrentLog() {
+  const data = getLogFiltered();
+  document.getElementById('logCount').textContent = 'إجمالي السجلات: ' + data.length;
+
+  if (currentLogTab === 'sales') renderSalesLog(data);
+  else if (currentLogTab === 'agents') renderAgentsLog(data);
+  else renderInventoryLog(data);
+}
+
+function renderSalesLog(data) {
+  const totalQty = data.reduce((s,r) => s + r.qty, 0);
+  const totalRev = data.reduce((s,r) => s + (r.total||0), 0);
+  document.getElementById('logSummaryBar').innerHTML = `
+    <div class="log-sum-card"><div class="log-sum-val" style="color:var(--green)">${data.length}</div><div class="log-sum-lbl">عملية بيع</div></div>
+    <div class="log-sum-card"><div class="log-sum-val" style="color:var(--accent)">${totalQty}</div><div class="log-sum-lbl">إجمالي الوحدات</div></div>
+    <div class="log-sum-card"><div class="log-sum-val" style="color:var(--yellow)">${totalRev.toLocaleString()}</div><div class="log-sum-lbl">إجمالي الإيراد (ر.س)</div></div>
+  `;
+  document.getElementById('logThead').innerHTML = `<tr style="background:var(--surface2)">
+    <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:var(--text-muted);">التاريخ</th>
+    <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:var(--text-muted);">المنتج</th>
+    <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:var(--text-muted);">الكمية</th>
+    <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:var(--text-muted);">سعر الوحدة</th>
+    <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:var(--text-muted);">الإجمالي</th>
+    <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:var(--text-muted);">بواسطة</th>
+  </tr>`;
+  if (!data.length) { document.getElementById('logTbody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">لا توجد سجلات</td></tr>'; return; }
+  document.getElementById('logTbody').innerHTML = data.map(r => `
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:9px 12px;"><span class="log-date">${fmtDate(r.created_at)}</span></td>
+      <td style="padding:9px 12px;font-weight:700;font-size:13px;">${r.product_name}</td>
+      <td style="padding:9px 12px;font-family:'IBM Plex Mono',monospace;color:var(--accent)">${r.qty}</td>
+      <td style="padding:9px 12px;font-family:'IBM Plex Mono',monospace;">${(r.price_sell||0).toLocaleString()} ر.س</td>
+      <td style="padding:9px 12px;font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--green)">${(r.total||0).toLocaleString()} ر.س</td>
+      <td style="padding:9px 12px;font-size:11px;color:var(--text-dim)">${r.sold_by||'—'}</td>
+    </tr>`).join('');
+}
+
+function renderAgentsLog(data) {
+  const assigns = data.filter(r=>r.action==='تحويل').length;
+  const returns = data.filter(r=>r.action==='استرجاع').length;
+  const totalQty = data.reduce((s,r)=>s+r.qty,0);
+  document.getElementById('logSummaryBar').innerHTML = `
+    <div class="log-sum-card"><div class="log-sum-val" style="color:#a5b4fc">${assigns}</div><div class="log-sum-lbl">تحويل</div></div>
+    <div class="log-sum-card"><div class="log-sum-val" style="color:var(--yellow)">${returns}</div><div class="log-sum-lbl">استرجاع</div></div>
+    <div class="log-sum-card"><div class="log-sum-val" style="color:var(--accent)">${totalQty}</div><div class="log-sum-lbl">إجمالي الوحدات</div></div>
+  `;
+  document.getElementById('logThead').innerHTML = `<tr style="background:var(--surface2)">
+    <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:var(--text-muted);">التاريخ</th>
+    <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:var(--text-muted);">المنتج</th>
+    <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:var(--text-muted);">المندوب</th>
+    <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:var(--text-muted);">العملية</th>
+    <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:var(--text-muted);">الكمية</th>
+    <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:var(--text-muted);">بواسطة</th>
+  </tr>`;
+  if (!data.length) { document.getElementById('logTbody').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">لا توجد سجلات</td></tr>'; return; }
+  document.getElementById('logTbody').innerHTML = data.map(r => `
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:9px 12px;"><span class="log-date">${fmtDate(r.created_at)}</span></td>
+      <td style="padding:9px 12px;font-weight:700;font-size:13px;">${r.product_name}</td>
+      <td style="padding:9px 12px;color:#a5b4fc;font-weight:600">🧑‍💼 ${r.agent_name||'—'}</td>
+      <td style="padding:9px 12px;"><span class="log-action-badge ${r.action==='تحويل'?'log-action-assign':'log-action-return'}">${r.action==='تحويل'?'↗️ تحويل':'↩️ استرجاع'}</span></td>
+      <td style="padding:9px 12px;font-family:'IBM Plex Mono',monospace;color:var(--accent)">${r.qty}</td>
+      <td style="padding:9px 12px;font-size:11px;color:var(--text-dim)">${r.done_by||'—'}</td>
+    </tr>`).join('');
+}
+
+function renderInventoryLog(data) {
+  const adds = data.filter(r=>r.action==='إضافة منتج').length;
+  const sells = data.filter(r=>r.action==='بيع').length;
+  const transfers = data.filter(r=>r.action==='تحويل لمندوب').length;
+  document.getElementById('logSummaryBar').innerHTML = `
+    <div class="log-sum-card"><div class="log-sum-val" style="color:var(--blue)">${adds}</div><div class="log-sum-lbl">إضافة</div></div>
+    <div class="log-sum-card"><div class="log-sum-val" style="color:var(--green)">${sells}</div><div class="log-sum-lbl">بيع</div></div>
+    <div class="log-sum-card"><div class="log-sum-val" style="color:#a5b4fc">${transfers}</div><div class="log-sum-lbl">تحويل</div></div>
+    <div class="log-sum-card"><div class="log-sum-val" style="color:var(--accent)">${data.length}</div><div class="log-sum-lbl">إجمالي</div></div>
+  `;
+  document.getElementById('logThead').innerHTML = `<tr style="background:var(--surface2)">
+    <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:var(--text-muted);">التاريخ</th>
+    <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:var(--text-muted);">المنتج</th>
+    <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:var(--text-muted);">العملية</th>
+    <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:var(--text-muted);">قبل</th>
+    <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:var(--text-muted);">التغيير</th>
+    <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:var(--text-muted);">بعد</th>
+    <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:var(--text-muted);">ملاحظة</th>
+    <th style="padding:9px 12px;text-align:right;font-size:10px;font-weight:700;color:var(--text-muted);">بواسطة</th>
+  </tr>`;
+  if (!data.length) { document.getElementById('logTbody').innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted)">لا توجد سجلات</td></tr>'; return; }
+  document.getElementById('logTbody').innerHTML = data.map(r => {
+    let actionClass = 'log-action-edit';
+    if (r.action==='بيع') actionClass='log-action-sell';
+    else if (r.action==='تحويل لمندوب') actionClass='log-action-assign';
+    else if (r.action==='إضافة منتج') actionClass='log-action-add';
+    else if (r.action==='استرجاع من مندوب') actionClass='log-action-return';
+    const chgColor = r.qty_change > 0 ? 'var(--green)' : 'var(--red)';
+    const chgSign = r.qty_change > 0 ? '+' : '';
+    return `<tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:9px 12px;"><span class="log-date">${fmtDate(r.created_at)}</span></td>
+      <td style="padding:9px 12px;font-weight:700;font-size:13px;">${r.product_name}</td>
+      <td style="padding:9px 12px;"><span class="log-action-badge ${actionClass}">${r.action}</span></td>
+      <td style="padding:9px 12px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted)">${r.qty_before}</td>
+      <td style="padding:9px 12px;font-family:'IBM Plex Mono',monospace;font-weight:700;color:${chgColor}">${chgSign}${r.qty_change}</td>
+      <td style="padding:9px 12px;font-family:'IBM Plex Mono',monospace;color:var(--accent)">${r.qty_after}</td>
+      <td style="padding:9px 12px;font-size:11px;color:var(--text-dim);max-width:180px;white-space:normal">${r.note||'—'}</td>
+      <td style="padding:9px 12px;font-size:11px;color:var(--text-dim)">${r.done_by||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function exportLog() {
+  const data = getLogFiltered();
+  if (!data.length) { showToast('⚠️','لا توجد بيانات للتصدير','#f59e0b'); return; }
+  let headers, rows;
+  if (currentLogTab === 'sales') {
+    headers = ['التاريخ','المنتج','الكمية','سعر الوحدة','الإجمالي','بواسطة'];
+    rows = data.map(r => [fmtDate(r.created_at),r.product_name,r.qty,r.price_sell,r.total,r.sold_by].join(','));
+  } else if (currentLogTab === 'agents') {
+    headers = ['التاريخ','المنتج','المندوب','العملية','الكمية','بواسطة'];
+    rows = data.map(r => [fmtDate(r.created_at),r.product_name,r.agent_name,r.action,r.qty,r.done_by].join(','));
+  } else {
+    headers = ['التاريخ','المنتج','العملية','قبل','التغيير','بعد','ملاحظة','بواسطة'];
+    rows = data.map(r => [fmtDate(r.created_at),r.product_name,r.action,r.qty_before,r.qty_change,r.qty_after,(r.note||'').replace(/,/g,' '),r.done_by].join(','));
+  }
+  const csv = '﻿' + [headers.join(','), ...rows].join('
+');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'log_' + currentLogTab + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  showToast('📥','تم تصدير السجل');
 }
 
 // =================== START ===================
