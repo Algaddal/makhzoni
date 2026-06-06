@@ -1513,8 +1513,7 @@ function exportLog() {
     headers = ['التاريخ','المنتج','العملية','قبل','التغيير','بعد','ملاحظة','بواسطة'];
     rows = data.map(r => [fmtDate(r.created_at),r.product_name,r.action,r.qty_before,r.qty_change,r.qty_after,(r.note||'').replace(/,/g,' '),r.done_by].join(','));
   }
-  const csv = '﻿' + [headers.join(','), ...rows].join('
-');
+  const csv = '\uFEFF' + [headers.join(','), ...rows].join('\n');
   const a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
   a.download = 'log_' + currentLogTab + '_' + new Date().toISOString().slice(0,10) + '.csv';
