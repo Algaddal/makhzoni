@@ -977,7 +977,24 @@ function showToast(icon,msg,color='#00d4aa'){
 }
 
 // =================== START ===================
-init();
+// انتظر تحميل Supabase قبل البدء
+function waitForSupabase(tries) {
+  if (window.supabase) {
+    init();
+  } else if (tries > 0) {
+    setTimeout(() => waitForSupabase(tries - 1), 300);
+  } else {
+    // Supabase لم يتحمل - اعرض خطأ واضح
+    document.getElementById('loadingOverlay').innerHTML = `
+      <div style="text-align:center;padding:24px;max-width:400px;">
+        <div style="font-size:36px;margin-bottom:12px;">⚠️</div>
+        <div style="color:#ef4444;font-size:16px;font-weight:700;margin-bottom:8px;">تعذّر تحميل المكتبة</div>
+        <div style="color:#64748b;font-size:13px;margin-bottom:16px;">تحقق من اتصال الإنترنت وأعد تحميل الصفحة</div>
+        <button onclick="location.reload()" style="background:#00d4aa;color:#0a0e1a;border:none;border-radius:8px;padding:10px 24px;font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">🔄 إعادة التحميل</button>
+      </div>`;
+  }
+}
+waitForSupabase(20);
 </script>
 </body>
 </html>
